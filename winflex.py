@@ -34,7 +34,7 @@ class Flexor(object):
         illustration_front = self.browser.find_element_by_css_selector("a.shortcut:nth-child(1)")
         illustration_front.click()
         try:
-            wait = WebDriverWait(self.browser, 5)
+            wait = WebDriverWait(self.browser, 15)
             element = wait.until(
                 EC.text_to_be_present_in_element(
                     (By.CSS_SELECTOR, "#divWinFlexShortcuts > div.panel-body > div > a:nth-child(1) > span"),
@@ -65,7 +65,7 @@ class Flexor(object):
             self.browser.find_element_by_css_selector(r"#Insured\2e Class\7c 0 > div.labelPosLeft > select"))
         age = self.browser.find_element_by_css_selector("#Insured\.Age\|0 > div:nth-child(2) > input:nth-child(1)")
 
-        client_name.send_keys('Valued Client')
+        client_name.send_keys("Valued Client")
         gender_select.select_by_visible_text("Female")
         class_select.select_by_visible_text("Preferred Non-Tobacco")
         age.clear()
@@ -101,23 +101,36 @@ class Flexor(object):
         calculate.click()
         print("Calculating")
         try:
-            wait = WebDriverWait(self.browser, 30)
+            wait = WebDriverWait(self.browser, 75)
             element = wait.until(
                 EC.text_to_be_present_in_element(
-                    (By.CSS_SELECTOR, "#divSnapshotPanel > div:nth-child(1) > div:nth-child(1)"), "Snapshot"))
+                    (By.CSS_SELECTOR, "#divResults > div:nth-child(1) > div:nth-child(1) > h2:nth-child(1)")
+                    , "Illustration Results"))
             print("Calculation Complete")
         except TimeoutException:
             print("Failed to calculate")
 
     def print_results(self):
-        annual_premium = self.browser.find_element_by_css_selector("#cbSendRow_103 > td:nth-child(6)")
-        target_premium = self.browser.find_element_by_css_selector("#cbSendRow_103 > td:nth-child(7)")
-        payment_duration = self.browser.find_element_by_css_selector("#cbSendRow_103 > td:nth-child(9)")
-        sacs = self.browser.find_element_by_css_selector("#cbSendRow_103 > td:nth-child(4)")
+        annual_premium = self.browser.find_element_by_css_selector("td.columnTextQC:nth-child(6)")
+        target_premium = self.browser.find_element_by_css_selector("td.columnTextQC:nth-child(7")
+        payment_duration = self.browser.find_element_by_css_selector("td.columnTextQC-center:nth-child(9)")
+        sacs = self.browser.find_element_by_css_selector("td.columnTextQC-center:nth-child(4)")
         print("Insured is: \n" + sacs.text)
         print("Annual Premium: " + annual_premium.text + " " + "Target Premium: " + target_premium.text)
         print("Payment duration is: " + payment_duration.text)
         return int(annual_premium.text.replace(',', ''))
+
+    def get_tp(self):
+        target_premium = self.browser.find_element_by_css_selector("td.columnTextQC:nth-child(7)")
+        return int(target_premium.text.replace(',', ''))
+
+    def get_ap(self):
+        annual_premium = self.browser.find_element_by_css_selector("td.columnTextQC:nth-child(6)")
+        return int(annual_premium.text.replace(',', ''))
+
+    def get_insured(self):
+        insured_info = self.browser.find_element_by_css_selector("td.columnTextQC-center:nth-child(4)")
+        return insured_info.text
 
     def reset_form(self):
         recalculate = self.browser.find_element_by_css_selector("a.text-primary")
@@ -135,7 +148,6 @@ class Flexor(object):
 
 def illustrate_suite(flexor, intervals):
     """
-
     :param flexor: uses the initialized winflex illustration object, Flexor
     :param intervals: the different payment durations
     :return: the target premium and annual premiums
@@ -144,35 +156,67 @@ def illustrate_suite(flexor, intervals):
     solve_tab = flexor.browser.find_element_by_css_selector('#QuestionTab1 > a:nth-child(1)')
     solve_tab.click()
     premiums = []
-
+    insured = ""
     for duration in intervals:
         flexor.update_field(payment_duration_field, duration)
         flexor.calculate()
-        premiums.append(flexor.print_results())
+        if duration == "5":
+            premiums.append(flexor.get_tp())
+            premiums.append(flexor.get_ap())
+            insured = flexor.get_insured()
+        else:
+            premiums.append(flexor.get_ap())
         flexor.reset_form()
-
+    print(insured)
     print(*premiums, sep="\n")
 
+def illustrate_other(flexor, intervals):
+    """
+    :param flexor: uses the initialized winflex illustration object, Flexor
+    :param intervals: the different payment durations
+    :return: the target premium and annual premiums
+    """
+    end_year = ".schedule > tbody:nth-child(2) > tr:nth-child(1) > td:nth-child(2)"
+    payment_duration_field = "td.active:nth-child(2) > input:nth-child(1)"
+    solve_tab = flexor.browser.find_element_by_css_selector('#QuestionTab1 > a:nth-child(1)')
+    solve_tab.click()
+    premiums = []
+    insured = ""
+    for duration in intervals:
+        end_button = flexor.browser.find_element_by_css_selector(end_year)
+        end_button.click()
+        payment_duration = flexor.browser.find_element_by_css_selector(payment_duration_field)
+        payment_duration.send_keys(Keys.BACKSPACE)
+        payment_duration.send_keys(Keys.BACKSPACE)
+        payment_duration.send_keys(Keys.BACKSPACE)
+        payment_duration.send_keys(duration)
+        payment_duration.send_keys(Keys.TAB)
+        flexor.calculate()
+        if duration == "5":
+            premiums.append(flexor.get_tp())
+            premiums.append(flexor.get_ap())
+            insured = flexor.get_insured()
+        else:
+            premiums.append(flexor.get_ap())
+        flexor.reset_form()
+    print(insured)
+    print(*premiums, sep="\n")
 
-def main():
-    intervals = ["5", "10", "20"]
-    age_range = ["35","40","45","50","55","60","65"]
-    name = 'AG - American General'
-    product = 'Secure Lifetime GUL 3'
-
-    flex = Flexor()
-    flex.initialize()
+def fills(flex):
     flex.new_case()
     flex.fill_client()
     flex.fill_solve()
 
-    for age in age_range:
+
+def illustrate_range(flex, range, interval):
+    for age in range:
         insured_tab = flex.browser.find_element_by_css_selector('#QuestionTab0 > a:nth-child(1)')
         insured_tab.click()
         flex.update_field("#Insured\.Age\|0 > div:nth-child(2) > input:nth-child(1)", age)
-        illustrate_suite(flex, intervals)
+        illustrate_suite(flex, interval)
         print("Age: " + age + " Completed")
 
 
 if __name__ == '__main__':
-    main()
+    interval = ["5", "10", "20"]
+    age_range = ["35","40","45","50","55","60","65"]
