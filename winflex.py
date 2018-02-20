@@ -66,10 +66,10 @@ class Flexor(object):
         age = self.browser.find_element_by_css_selector("#Insured\.Age\|0 > div:nth-child(2) > input:nth-child(1)")
 
         client_name.send_keys("Valued Client")
-        gender_select.select_by_visible_text("Female")
+        gender_select.select_by_visible_text("Male")
         class_select.select_by_visible_text("Preferred Non-Tobacco")
         age.clear()
-        age.send_keys("35")
+        age.send_keys("25")
 
     def fill_solve(self):
         """ Populates the solve for tab"""
@@ -218,5 +218,11 @@ def illustrate_range(flex, range, interval):
 
 
 if __name__ == '__main__':
-    interval = ["5", "10", "20"]
-    age_range = ["35","40","45","50","55","60","65"]
+    """
+    First initialize the winflex browser with flex = Flexor()
+    then use the flex object with the illustrate_range function to illustrate based on age_range and interval
+    illustrate_suite just runs the illustrations for that age at the intervals defined.
+    """
+
+    interval = ["5", "10"]
+    age_range = ["25","30","35","40","45","50","55","60","65"]
