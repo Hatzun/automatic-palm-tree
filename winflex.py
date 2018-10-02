@@ -10,9 +10,13 @@ from selenium.webdriver.common.keys import Keys
 
 class Flexor(object):
     def __init__(self):
+        """
+        Init with the chrome webdriver
+        """
+
         self.browser = webdriver.Chrome()
 
-        """ field locations """
+        """ set up default field locations """
         self.field_tp = "td.columnTextQC:nth-child(7)"
         self.field_ap = "td.columnTextQC:nth-child(6)"
         self.field_insured = "td.columnTextQC-center:nth-child(4)"
@@ -21,7 +25,7 @@ class Flexor(object):
         self.field_company = "#lbProductSelectorCompanies > tbody > tr:nth-child(6) > td"
         self.field_duration = r"#Year_Policy\2e PremiumYears\7c 1 > div > div > input"
 
-        """ values """
+        """ set up default values """
         self.health_class = "Preferred"
         self.premium_option = "NLG Lifetime"
 
@@ -118,8 +122,8 @@ class Flexor(object):
             wait = WebDriverWait(self.browser, 75)
             element = wait.until(
                 EC.text_to_be_present_in_element(
-                    (By.CSS_SELECTOR, "#divResults > div:nth-child(1) > div:nth-child(1) > h2:nth-child(1)")
-                    , "Illustration Results"))
+                    (By.CSS_SELECTOR, "#divResults > div:nth-child(1) > div:nth-child(1) > h2:nth-child(1)"),
+                    "Illustration Results"))
             print("Calculation Complete")
             try:
                 self.browser.find_element_by_css_selector('#closeHtmlModalButton').click()
@@ -173,13 +177,12 @@ def illustrate_suite(flexor, intervals):
     :param intervals: the different payment durations
     :return: the target premium and annual premiums
     """
-    payment_duration_field = r"#Year_Policy\2e PremiumYears\7c 1 > div > div > input"
     solve_tab = flexor.browser.find_element_by_css_selector('#QuestionTab1 > a:nth-child(1)')
     solve_tab.click()
     premiums = []
     insured = ""
     for duration in intervals:
-        flexor.update_field(payment_duration_field, duration)
+        flexor.update_field(flexor.field_duration, duration)
         flexor.calculate()
         if duration == "5":
             premiums.append(flexor.get_tp())
@@ -225,27 +228,30 @@ def illustrate_other(flexor, intervals):
     print(*premiums, sep="\n")
 
 
-def fills(flex):
-    flex.new_case()
-    flex.fill_client()
-    flex.fill_solve()
+def fills(client):
+    client.new_case()
+    client.fill_client()
+    client.fill_solve()
 
 
-def illustrate_range(flex, ranges, intervals):
+def illustrate_range(client, ranges, intervals):
     for age in ranges:
-        insured_tab = flex.browser.find_element_by_css_selector('#QuestionTab0 > a:nth-child(1)')
+        insured_tab = client.browser.find_element_by_css_selector('#QuestionTab0 > a:nth-child(1)')
         insured_tab.click()
-        flex.update_field("#Insured\.Age\|0 > div:nth-child(2) > input:nth-child(1)", age)
-        illustrate_suite(flex, intervals)
+        client.update_field(r"#Insured\2e Age\7c 0 > div.labelPosLeft > input", age)
+        illustrate_suite(client, intervals)
         print("Age: " + age + " Completed")
 
 
 if __name__ == '__main__':
     """
     First initialize the winflex browser with flex = Flexor()
+    Fill the fields with fills(flex) and updates fields/values as needed for the insurer
     then use the flex object with the illustrate_range function to illustrate based on age_range and interval
     illustrate_suite just runs the illustrations for that age at the intervals defined.
     """
+    flex = Flexor()
+    flex.initialize()
 
     interval = ["5", "10", "20"]
     age_range = ["35", "40", "45", "50", "55", "60", "65"]
